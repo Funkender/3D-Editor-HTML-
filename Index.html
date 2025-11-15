@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cube Look Around</title>
+  <style>
+    html, body { height: 100%; margin: 0; background: #0f1220; }
+    canvas { display: block; }
+    .hint {
+      position: fixed; left: 12px; bottom: 12px; color: #cfd8dc;
+      font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      opacity: 0.8; user-select: none;
+      background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="hint">Linke Maustaste oder Touch: drehen • Mausrad: zoomen</div>
+
+  <!-- Three.js + OrbitControls von CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    // Szene, Kamera, Renderer
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f1220);
+
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(3, 2, 6);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    // Beleuchtung
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    keyLight.position.set(5, 5, 5);
+    scene.add(keyLight);
+
+    // Boden/Umgebung für Orientierung (optional, dezent)
+    const grid = new THREE.GridHelper(20, 20, 0x445, 0x223);
+    grid.material.opacity = 0.25;
+    grid.material.transparent = true;
+    scene.add(grid);
+
+    // Würfel in der Mitte
+    const cubeGeo = new THREE.BoxGeometry(2, 2, 2);
+    const cubeMat = new THREE.MeshStandardMaterial({
+      color: 0x3aa8ff,
+      roughness: 0.45,
+      metalness: 0.2
+    });
+    const cube = new THREE.Mesh(cubeGeo, cubeMat);
+    scene.add(cube);
+
+    // OrbitControls für LMB / Touch
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0, 0);
+    controls.enablePan = false;     // kein Verschieben
+    controls.enableDamping = true;  // sanftes Nachgleiten
+    controls.dampingFactor = 0.08;
+    controls.rotateSpeed = 0.9;
+    controls.zoomSpeed = 0.8;
+    controls.minDistance = 3;       // Zoom-Grenzen (nah)
+    controls.maxDistance = 20;      // Zoom-Grenzen (fern)
+
+    // Dezente Rotation, wenn der Nutzer nichts macht (optional)
+    let autoRotate = true;
+    controls.autoRotate = autoRotate;
+    controls.autoRotateSpeed = 0.8; // Umdrehungen pro Minute ~ 0.8 fühlt sich angenehm an
+
+    // Interaktion: Sobald der Nutzer draggt, Auto-Rotate kurz stoppen
+    renderer.domElement.addEventListener('pointerdown', () => {
+      controls.autoRotate = false;
+    });
+    renderer.domElement.addEventListener('pointerup', () => {
+      controls.autoRotate = autoRotate;
+    });
+
+    // Responsive
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+
+    // Render-Loop
+    const clock = new THREE.Clock();
+    function animate() {
+      const dt = clock.getDelta();
+      // leichte Eigenrotation für visuelles Feedback (optional)
+      cube.rotation.y += dt * 0.25;
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
